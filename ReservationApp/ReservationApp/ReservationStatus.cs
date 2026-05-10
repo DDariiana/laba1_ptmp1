@@ -1,6 +1,4 @@
-﻿using System;
-
-public enum ReservationStatus
+﻿public enum ReservationStatus
 {
     Активно,
     Отменено,

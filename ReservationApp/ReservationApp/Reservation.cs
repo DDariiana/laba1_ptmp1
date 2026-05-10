@@ -1,42 +1,59 @@
 ﻿using System;
 
-public class Reservation
+namespace ReservationApp
 {
-    public string CustomerName { get; set; }
-    public DateTime StartTime { get; set; }
-    public DateTime EndTime { get; set; }
-    public ReservationStatus Status { get; set; }
-
-    public Reservation(string customerName, DateTime startTime, DateTime endTime)
+    public class Reservation
     {
-        if (string.IsNullOrWhiteSpace(customerName))
-            throw new ArgumentException("Имя клиента не может быть пустым");
+        public Guid Id { get; set; }
+        public string CustomerName { get; set; }
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
+        public ReservationStatus Status { get; set; }
 
-        if (startTime >= endTime)
-            throw new ArgumentException("Время начала должно быть раньше времени окончания");
+        // Конструктор для создания новой резервации
+        public Reservation(string customerName, DateTime startTime, DateTime endTime)
+        {
+            if (string.IsNullOrWhiteSpace(customerName))
+                throw new ArgumentException("Имя клиента не может быть пустым.");
 
-        CustomerName = customerName;
-        StartTime = startTime;
-        EndTime = endTime;
-        Status = ReservationStatus.Активно;
-    }
-    public bool IsActive()
-    {
-        return Status == ReservationStatus.Активно;
-    }
+            if (startTime >= endTime)
+                throw new ArgumentException("Время начала должно быть раньше времени окончания.");
 
-    public TimeSpan GetDuration()
-    {
-        return EndTime - StartTime;
-    }
+            Id = Guid.NewGuid();
+            CustomerName = customerName;
+            StartTime = startTime;
+            EndTime = endTime;
+            Status = ReservationStatus.Активно;
+        }
 
-    public override string ToString()
-    {
-        return $"{CustomerName} - {StartTime:yyyy-MM-dd HH:mm} - {Status}";
-    }
+        // Конструктор для загрузки из файла (с указанием Id)
+        public Reservation(Guid id, string customerName, DateTime startTime, DateTime endTime, ReservationStatus status)
+        {
+            Id = id;
+            CustomerName = customerName;
+            StartTime = startTime;
+            EndTime = endTime;
+            Status = status;
+        }
 
-    public void UpdateStatus(ReservationStatus newStatus)
-    {
-        Status = newStatus;
+        public void UpdateStatus(ReservationStatus newStatus)
+        {
+            Status = newStatus;
+        }
+
+        public bool IsActive()
+        {
+            return Status == ReservationStatus.Активно;
+        }
+
+        public TimeSpan GetDuration()
+        {
+            return EndTime - StartTime;
+        }
+
+        public override string ToString()
+        {
+            return $"{CustomerName} - {StartTime:yyyy-MM-dd HH:mm} - {EndTime:yyyy-MM-dd HH:mm} - {Status}";
+        }
     }
 }
