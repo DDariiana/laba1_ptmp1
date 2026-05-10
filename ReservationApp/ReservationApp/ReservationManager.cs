@@ -3,102 +3,134 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-public class ReservationManager
+namespace ReservationApp
 {
-    public List<Reservation> Reservations { get; private set; }
-
-    public ReservationManager()
+    public class ReservationManager
     {
-        Reservations = new List<Reservation>();
-        LoadReservations();
-    }
+        // ОСТАВЛЯЕМ ОДНО поле — публичное свойство
+        public List<Reservation> Reservations { get; private set; }
+        private readonly string _filePath = "reservations.txt";
 
-    public void AddReservation(Reservation reservation)
-    {
-        if (Reservations.Any(r => HasOverlap(r, reservation)))
-            throw new ArgumentException("Время резервирования пересекается");
-
-        Reservations.Add(reservation);
-    }
-
-    public void RemoveReservation(Reservation reservation)
-    {
-        if (!Reservations.Contains(reservation))
-            throw new ArgumentException("Резервирование не найдено");
-
-        Reservations.Remove(reservation);
-    }
-
-    public void UpdateReservationStatus(Reservation reservation, ReservationStatus newStatus)
-    {
-        if (reservation == null)
+        public ReservationManager()
         {
-            throw new ArgumentNullException(nameof(reservation));
+            Reservations = new List<Reservation>();
+            LoadReservations();
         }
-        reservation.UpdateStatus(newStatus);
-        SaveReservations();
-    }
 
-    private bool HasOverlap(Reservation existing, Reservation newReservation)
-    {
-        return existing.StartTime < newReservation.EndTime &&
-               newReservation.StartTime < existing.EndTime;
-    }
-
-    private void SaveReservations()
-    {
-        // var lines = Reservations.Select(r =>
-        //    $"{r.CustomerName}|{r.StartTime:yyyy-MM-dd HH:mm}|{r.EndTime:yyyy-MM-dd HH:mm}|{(int)r.Status}");
-        // File.WriteAllLines("reservations.txt", lines);
-        File.WriteAllLines("reservations.txt", Reservations.Select(r =>
-        $"{r.CustomerName}|{r.StartTime.ToString("yyyy-MM-dd HH: mm")}|{r.EndTime.ToString("yyyy - MM - dd HH: mm")}|{(int)r.Status}"));
-    }
-
-    private void LoadReservations()
-    {
-        // if (!File.Exists("reservations.txt")) return;
-
-        // var lines = File.ReadAllLines("reservations.txt");
-        // foreach (var line in lines)
-        // {
-        //    var parts = line.Split('|');
-        //    if (parts.Length == 4)
-        //    {
-        //        if (DateTime.TryParse(parts[1], out DateTime startTime) &&
-        //            DateTime.TryParse(parts[2], out DateTime endTime) &&
-        //            Enum.TryParse<ReservationStatus>(parts[3], out ReservationStatus status))
-        //        {
-        //            var reservation = new Reservation(parts[0], startTime, endTime);
-        //            reservation.Status = status;
-        //            Reservations.Add(reservation);
-        //        }
-        //    }
-        // }
-
-        if (File.Exists("reservations.txt"))
+        public bool IsTimeAvailable(DateTime start, DateTime end)
         {
-            var lines = File.ReadAllLines("reservations.txt");
+            return !Reservations.Any(r =>
+                r.Status == ReservationStatus.Активно &&
+                start < r.EndTime &&
+                end > r.StartTime);
+        }
+
+        public List<string> GetAvailableSlots(DateTime startDate, int daysToCheck = 30)
+        {
+            var availableDates = new List<string>();
+
+            for (int i = 0; i < daysToCheck; i++)
+            {
+                DateTime checkDate = startDate.AddDays(i);
+                bool isDateAvailable = true;
+
+                foreach (var r in Reservations)
+                {
+                    if (r.Status == ReservationStatus.Активно)
+                    {
+                        if ((checkDate.Date >= r.StartTime.Date && checkDate.Date <= r.EndTime.Date) ||
+                            (r.StartTime.Date <= checkDate.Date && r.EndTime.Date >= checkDate.Date))
+                        {
+                            isDateAvailable = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (isDateAvailable)
+                {
+                    availableDates.Add(checkDate.ToString("dd.MM.yyyy (dddd)"));
+                }
+            }
+
+            return availableDates;
+        }
+
+        // 🔧 ИСПРАВЛЕНО: используем Reservations вместо _reservations
+        public void AddReservation(Reservation reservation)
+        {
+            foreach (var existing in Reservations) // ← было _reservations
+            {
+                if (existing.Status == ReservationStatus.Активно &&
+                    reservation.StartTime < existing.EndTime &&
+                    reservation.EndTime > existing.StartTime)
+                {
+                    throw new ArgumentException(
+                        $"Время с {reservation.StartTime} по {reservation.EndTime} уже занято резервированием для {existing.CustomerName}");
+                }
+            }
+
+            Reservations.Add(reservation); // ← было _reservations
+            SaveReservations(); // ← не забываем сохранить!
+        }
+
+        public void RemoveReservationById(Guid id)
+        {
+            var reservation = Reservations.FirstOrDefault(r => r.Id == id);
+            if (reservation == null)
+                throw new ArgumentException("Резервирование не найдено.");
+
+            Reservations.Remove(reservation);
+            SaveReservations();
+        }
+
+        public void UpdateReservationStatusById(Guid id, ReservationStatus newStatus)
+        {
+            var reservation = Reservations.FirstOrDefault(r => r.Id == id);
+            if (reservation == null)
+                throw new ArgumentException("Резервирование не найдено.");
+
+            reservation.Status = newStatus;
+            SaveReservations();
+        }
+
+        private void SaveReservations()
+        {
+            var lines = Reservations.Select(r =>
+                $"{r.Id}|{r.CustomerName}|{r.StartTime:yyyy-MM-dd HH:mm}|{r.EndTime:yyyy-MM-dd HH:mm}|{(int)r.Status}");
+            File.WriteAllLines(_filePath, lines);
+        }
+
+        private void LoadReservations()
+        {
+            if (!File.Exists(_filePath)) return;
+
+            var lines = File.ReadAllLines(_filePath);
             foreach (var line in lines)
             {
                 var parts = line.Split('|');
-                if (parts.Length == 4)
+                if (parts.Length == 5 &&
+                    Guid.TryParse(parts[0], out Guid id) &&
+                    DateTime.TryParse(parts[2], out DateTime start) &&
+                    DateTime.TryParse(parts[3], out DateTime end) &&
+                    int.TryParse(parts[4], out int statusInt))
                 {
-                    DateTime startTime;
-                    DateTime endTime;
-                    ReservationStatus status;
-                    if (DateTime.TryParse(parts[1], out startTime) && DateTime.TryParse(parts[2],
-                    out endTime) && Enum.TryParse<ReservationStatus>(parts[3], out status))
+                    if (Enum.IsDefined(typeof(ReservationStatus), statusInt))
                     {
-                        Reservations.Add(new Reservation(parts[0], startTime, endTime));
-                        Reservations.Last().Status = status;
+                        Reservations.Add(new Reservation(id, parts[1], start, end, (ReservationStatus)statusInt));
                     }
                 }
             }
         }
-    }
 
-    public List<Reservation> FindByCustomerName(string customerName)
-    {
-        return Reservations.Where(r => r.CustomerName == customerName).ToList();
+        public void RemoveReservation(Reservation reservation)
+        {
+            RemoveReservationById(reservation.Id);
+        }
+
+        public void UpdateReservationStatus(Reservation reservation, ReservationStatus status)
+        {
+            UpdateReservationStatusById(reservation.Id, status);
+        }
     }
 }

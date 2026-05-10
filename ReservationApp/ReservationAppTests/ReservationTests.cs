@@ -7,108 +7,473 @@ namespace ReservationApp.Tests
     [TestClass]
     public class ReservationTests
     {
+        #region Тесты основного конструктора
+
         [TestMethod]
-        public void Constructor_WhenValidData_CreatesReservation()
+        public void Constructor_WithValidParameters_CreatesReservationSuccessfully()
         {
             // Arrange
-            string customerName = "Иван Иванов";
-            DateTime start = new DateTime(2026, 5, 7, 10, 0, 0);
-            DateTime end = new DateTime(2026, 5, 7, 12, 0, 0);
+            string customerName = "Иван Петров";
+            DateTime startTime = new DateTime(2026, 5, 15, 10, 0, 0);
+            DateTime endTime = new DateTime(2026, 5, 15, 12, 0, 0);
 
             // Act
-            var reservation = new Reservation(customerName, start, end);
+            var reservation = new Reservation(customerName, startTime, endTime);
 
             // Assert
+            Assert.IsNotNull(reservation);
             Assert.AreEqual(customerName, reservation.CustomerName);
-            Assert.AreEqual(start, reservation.StartTime);
-            Assert.AreEqual(end, reservation.EndTime);
+            Assert.AreEqual(startTime, reservation.StartTime);
+            Assert.AreEqual(endTime, reservation.EndTime);
+            Assert.AreEqual(ReservationStatus.Активно, reservation.Status);
+            Assert.AreNotEqual(Guid.Empty, reservation.Id);
+        }
+
+        [TestMethod]
+        public void Constructor_GeneratesUniqueGuid_ForEachInstance()
+        {
+            // Arrange
+            DateTime time = DateTime.Now.AddHours(1);
+
+            // Act
+            var reservation1 = new Reservation("Клиент 1", time, time.AddHours(1));
+            var reservation2 = new Reservation("Клиент 2", time, time.AddHours(1));
+
+            // Assert
+            Assert.AreNotEqual(reservation1.Id, reservation2.Id);
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(ArgumentException))]
+        public void Constructor_WithNullCustomerName_ThrowsArgumentException()
+        {
+            // Arrange
+            DateTime startTime = DateTime.Now.AddHours(1);
+            DateTime endTime = DateTime.Now.AddHours(2);
+
+            // Act
+            _ = new Reservation(null, startTime, endTime);
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(ArgumentException))]
+        public void Constructor_WithEmptyCustomerName_ThrowsArgumentException()
+        {
+            // Arrange
+            DateTime startTime = DateTime.Now.AddHours(1);
+            DateTime endTime = DateTime.Now.AddHours(2);
+
+            // Act
+            _ = new Reservation("", startTime, endTime);
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(ArgumentException))]
+        public void Constructor_WithWhitespaceCustomerName_ThrowsArgumentException()
+        {
+            // Arrange
+            DateTime startTime = DateTime.Now.AddHours(1);
+            DateTime endTime = DateTime.Now.AddHours(2);
+
+            // Act
+            _ = new Reservation("   ", startTime, endTime);
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(ArgumentException))]
+        public void Constructor_WithStartTimeEqualToEndTime_ThrowsArgumentException()
+        {
+            // Arrange
+            DateTime sameTime = DateTime.Now.AddHours(1);
+
+            // Act
+            _ = new Reservation("Иван", sameTime, sameTime);
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(ArgumentException))]
+        public void Constructor_WithStartTimeAfterEndTime_ThrowsArgumentException()
+        {
+            // Arrange
+            DateTime startTime = DateTime.Now.AddHours(2);
+            DateTime endTime = DateTime.Now.AddHours(1);
+
+            // Act
+            _ = new Reservation("Иван", startTime, endTime);
+        }
+
+        [TestMethod]
+        public void Constructor_SetsDefaultStatusToActive()
+        {
+            // Arrange
+            DateTime startTime = DateTime.Now.AddHours(1);
+            DateTime endTime = DateTime.Now.AddHours(2);
+
+            // Act
+            var reservation = new Reservation("Иван", startTime, endTime);
+
+            // Assert
             Assert.AreEqual(ReservationStatus.Активно, reservation.Status);
         }
 
+        #endregion
+
+        #region Тесты конструктора для загрузки из файла
+
         [TestMethod]
-        [ExpectedException(typeof(ArgumentException))]
-        public void Constructor_WhenNameIsEmpty_ThrowsException()
+        public void Constructor_WithAllParameters_CreatesReservationWithSpecifiedValues()
         {
-            new Reservation("", DateTime.Now, DateTime.Now.AddHours(1));
+            // Arrange
+            Guid id = Guid.NewGuid();
+            string customerName = "Мария Соколова";
+            DateTime startTime = new DateTime(2026, 6, 1, 14, 30, 0);
+            DateTime endTime = new DateTime(2026, 6, 1, 16, 45, 0);
+            ReservationStatus status = ReservationStatus.Отменено;
+
+            // Act
+            var reservation = new Reservation(id, customerName, startTime, endTime, status);
+
+            // Assert
+            Assert.AreEqual(id, reservation.Id);
+            Assert.AreEqual(customerName, reservation.CustomerName);
+            Assert.AreEqual(startTime, reservation.StartTime);
+            Assert.AreEqual(endTime, reservation.EndTime);
+            Assert.AreEqual(status, reservation.Status);
         }
 
         [TestMethod]
-        [ExpectedException(typeof(ArgumentException))]
-        public void Constructor_WhenNameIsNull_ThrowsException()
+        public void Constructor_WithAllParameters_AllowsEmptyCustomerName()
         {
-            new Reservation(null, DateTime.Now, DateTime.Now.AddHours(1));
+            // Arrange
+            Guid id = Guid.NewGuid();
+            DateTime startTime = DateTime.Now.AddHours(1);
+            DateTime endTime = DateTime.Now.AddHours(2);
+
+            // Act & Assert - не должно выбрасывать исключение
+            var reservation = new Reservation(id, "", startTime, endTime, ReservationStatus.Активно);
+            Assert.AreEqual("", reservation.CustomerName);
         }
 
         [TestMethod]
-        [ExpectedException(typeof(ArgumentException))]
-        public void Constructor_WhenStartTimeGreaterOrEqualEndTime_ThrowsException()
+        public void Constructor_WithAllParameters_AllowsInvalidTimeRange()
         {
-            DateTime time = DateTime.Now;
-            new Reservation("Клиент", time, time);
+            // Arrange
+            Guid id = Guid.NewGuid();
+            DateTime startTime = DateTime.Now.AddHours(2);
+            DateTime endTime = DateTime.Now.AddHours(1); // endTime раньше startTime
+
+            // Act & Assert - не должно выбрасывать исключение (для загрузки повреждённых данных)
+            var reservation = new Reservation(id, "Иван", startTime, endTime, ReservationStatus.Активно);
+            Assert.AreEqual(startTime, reservation.StartTime);
+            Assert.AreEqual(endTime, reservation.EndTime);
         }
 
         [TestMethod]
-        [ExpectedException(typeof(ArgumentException))]
-        public void Constructor_WhenStartTimeAfterEndTime_ThrowsException()
+        public void Constructor_WithAllParameters_CanSetAnyStatusValue()
         {
-            DateTime start = DateTime.Now.AddHours(2);
-            DateTime end = DateTime.Now;
-            new Reservation("Клиент", start, end);
+            // Arrange
+            Guid id = Guid.NewGuid();
+            DateTime startTime = DateTime.Now.AddHours(1);
+            DateTime endTime = DateTime.Now.AddHours(2);
+
+            // Act & Assert
+            foreach (ReservationStatus status in Enum.GetValues(typeof(ReservationStatus)))
+            {
+                var reservation = new Reservation(id, "Тест", startTime, endTime, status);
+                Assert.AreEqual(status, reservation.Status);
+            }
         }
 
+        #endregion
+
+        #region Тесты свойств (Getters/Setters)
+
         [TestMethod]
-        public void ToString_ReturnsCorrectFormat()
+        public void Properties_AreReadWrite()
         {
             // Arrange
             var reservation = new Reservation("Иван",
-                new DateTime(2026, 5, 7, 10, 0, 0),
-                new DateTime(2026, 5, 7, 11, 0, 0));
+                DateTime.Now.AddHours(1),
+                DateTime.Now.AddHours(2));
+            var newId = Guid.NewGuid();
+            var newStatus = ReservationStatus.Завершено;
+
+            // Act
+            reservation.Id = newId;
+            reservation.CustomerName = "Пётр";
+            reservation.StartTime = DateTime.Now.AddHours(5);
+            reservation.EndTime = DateTime.Now.AddHours(7);
+            reservation.Status = newStatus;
+
+            // Assert
+            Assert.AreEqual(newId, reservation.Id);
+            Assert.AreEqual("Пётр", reservation.CustomerName);
+            Assert.AreEqual(DateTime.Now.AddHours(5).ToString("yyyy-MM-dd HH:mm"),
+                reservation.StartTime.ToString("yyyy-MM-dd HH:mm"));
+            Assert.AreEqual(DateTime.Now.AddHours(7).ToString("yyyy-MM-dd HH:mm"),
+                reservation.EndTime.ToString("yyyy-MM-dd HH:mm"));
+            Assert.AreEqual(newStatus, reservation.Status);
+        }
+
+        [TestMethod]
+        public void CustomerName_CanBeSetToNull()
+        {
+            // Arrange
+            var reservation = new Reservation("Иван",
+                DateTime.Now.AddHours(1),
+                DateTime.Now.AddHours(2));
+
+            // Act
+            reservation.CustomerName = null;
+
+            // Assert
+            Assert.IsNull(reservation.CustomerName);
+        }
+
+        #endregion
+
+        #region Тесты метода ToString()
+
+        [TestMethod]
+        public void ToString_ReturnsFormattedString()
+        {
+            // Arrange
+            DateTime startTime = new DateTime(2026, 5, 20, 14, 30, 0);
+            DateTime endTime = new DateTime(2026, 5, 20, 16, 45, 0);
+            var reservation = new Reservation("Анна Козлова", startTime, endTime);
 
             // Act
             string result = reservation.ToString();
 
-            // Assert - проверяем то, что реально есть в строке
-            StringAssert.Contains(result, "Иван");
-            StringAssert.Contains(result, "2026");
-            StringAssert.Contains(result, "10:00");
+            // Assert
+            Assert.AreEqual("Анна Козлова - 2026-05-20 14:30 - 2026-05-20 16:45 - Активно", result);
         }
 
         [TestMethod]
-        public void IsActive_WhenStatusActive_ReturnsTrue()
+        public void ToString_WithDifferentStatus_ReflectsStatusCorrectly()
         {
             // Arrange
-            var reservation = new Reservation("Иван", DateTime.Now.AddHours(1), DateTime.Now.AddHours(2));
+            var id = Guid.NewGuid();
+            DateTime startTime = new DateTime(2026, 12, 25, 9, 0, 0);
+            DateTime endTime = new DateTime(2026, 12, 25, 10, 30, 0);
 
             // Act & Assert
-            Assert.IsTrue(reservation.IsActive());
+            var active = new Reservation(id, "Тест", startTime, endTime, ReservationStatus.Активно);
+            Assert.IsTrue(active.ToString().EndsWith("Активно"));
+
+            var cancelled = new Reservation(id, "Тест", startTime, endTime, ReservationStatus.Отменено);
+            Assert.IsTrue(cancelled.ToString().EndsWith("Отменено"));
+
+            var completed = new Reservation(id, "Тест", startTime, endTime, ReservationStatus.Завершено);
+            Assert.IsTrue(completed.ToString().EndsWith("Завершено"));
         }
 
         [TestMethod]
-        public void IsActive_WhenStatusCancelled_ReturnsFalse()
+        public void ToString_WithSpecialCharactersInName_PreservesCharacters()
         {
             // Arrange
-            var reservation = new Reservation("Иван", DateTime.Now.AddHours(1), DateTime.Now.AddHours(2))
-            {
-                Status = ReservationStatus.Отменено
-            };
-
-            // Act & Assert
-            Assert.IsFalse(reservation.IsActive());
-        }
-
-        [TestMethod]
-        public void GetDuration_ReturnsCorrectHours()
-        {
-            // Arrange
-            DateTime start = new DateTime(2026, 5, 7, 10, 0, 0);
-            DateTime end = new DateTime(2026, 5, 7, 12, 30, 0);
-            var reservation = new Reservation("Иван", start, end);
+            var reservation = new Reservation("О'Брайен-Смит",
+                DateTime.Now.AddHours(1),
+                DateTime.Now.AddHours(2));
 
             // Act
-            TimeSpan duration = reservation.GetDuration();
+            string result = reservation.ToString();
 
             // Assert
-            Assert.AreEqual(2.5, duration.TotalHours, 0.01);
+            Assert.IsTrue(result.StartsWith("О'Брайен-Смит"));
         }
+
+        [TestMethod]
+        public void ToString_WithEmptyCustomerName_HandlesGracefully()
+        {
+            // Arrange
+            var id = Guid.NewGuid();
+            DateTime startTime = new DateTime(2026, 1, 1, 0, 0, 0);
+            DateTime endTime = new DateTime(2026, 1, 1, 1, 0, 0);
+            var reservation = new Reservation(id, "", startTime, endTime, ReservationStatus.Активно);
+
+            // Act
+            string result = reservation.ToString();
+
+            // Assert
+            Assert.AreEqual(" - 2026-01-01 00:00 - 2026-01-01 01:00 - Активно", result);
+        }
+
+        #endregion
+
+        #region Тесты равенства и хеширования (если потребуется)
+
+        [TestMethod]
+        public void Equality_ByReference_NotByValue()
+        {
+            // Arrange
+            DateTime startTime = DateTime.Now.AddHours(1);
+            DateTime endTime = DateTime.Now.AddHours(2);
+
+            var reservation1 = new Reservation("Иван", startTime, endTime);
+            var reservation2 = new Reservation("Иван", startTime, endTime);
+
+            // Act & Assert
+            Assert.AreNotEqual(reservation1, reservation2); // Разные экземпляры
+            Assert.AreNotSame(reservation1, reservation2);
+        }
+
+        [TestMethod]
+        public void Equality_WithSameId_UsingFileConstructor()
+        {
+            // Arrange
+            Guid id = Guid.NewGuid();
+            DateTime startTime = DateTime.Now.AddHours(1);
+            DateTime endTime = DateTime.Now.AddHours(2);
+
+            var reservation1 = new Reservation(id, "Иван", startTime, endTime, ReservationStatus.Активно);
+            var reservation2 = new Reservation(id, "Пётр", startTime, endTime, ReservationStatus.Отменено);
+
+            // Act & Assert - по умолчанию сравнение по ссылке, но можно проверить по Id
+            Assert.AreEqual(reservation1.Id, reservation2.Id);
+            Assert.AreNotEqual(reservation1.CustomerName, reservation2.CustomerName);
+        }
+
+        #endregion
+
+        #region Тесты граничных значений даты и времени
+
+        [TestMethod]
+        public void Constructor_WithMinDateTimeValues_Works()
+        {
+            // Arrange
+            DateTime startTime = DateTime.MinValue;
+            DateTime endTime = DateTime.MinValue.AddHours(1);
+
+            // Act
+            var reservation = new Reservation("Тест", startTime, endTime);
+
+            // Assert
+            Assert.AreEqual(startTime, reservation.StartTime);
+            Assert.AreEqual(endTime, reservation.EndTime);
+        }
+
+        [TestMethod]
+        public void Constructor_WithMaxDateTimeValues_Works()
+        {
+            // Arrange
+            DateTime endTime = DateTime.MaxValue;
+            DateTime startTime = DateTime.MaxValue.AddHours(-1);
+
+            // Act
+            var reservation = new Reservation("Тест", startTime, endTime);
+
+            // Assert
+            Assert.AreEqual(startTime, reservation.StartTime);
+            Assert.AreEqual(endTime, reservation.EndTime);
+        }
+
+        [TestMethod]
+        public void Constructor_WithMidnightTimes_Works()
+        {
+            // Arrange
+            DateTime startTime = new DateTime(2026, 5, 15, 0, 0, 0);
+            DateTime endTime = new DateTime(2026, 5, 15, 23, 59, 59);
+
+            // Act
+            var reservation = new Reservation("Ночной клиент", startTime, endTime);
+
+            // Assert
+            Assert.AreEqual(startTime, reservation.StartTime);
+            Assert.AreEqual(endTime, reservation.EndTime);
+        }
+
+        [TestMethod]
+        public void Constructor_WithDifferentDates_Works()
+        {
+            // Arrange
+            DateTime startTime = new DateTime(2026, 5, 15, 22, 0, 0);
+            DateTime endTime = new DateTime(2026, 5, 16, 2, 0, 0); // На следующий день
+
+            // Act
+            var reservation = new Reservation("Междугородний", startTime, endTime);
+
+            // Assert
+            Assert.AreEqual(startTime, reservation.StartTime);
+            Assert.AreEqual(endTime, reservation.EndTime);
+            Assert.IsTrue(reservation.EndTime > reservation.StartTime);
+        }
+
+        #endregion
+
+        #region Тесты локализации и форматирования
+
+        [TestMethod]
+        public void ToString_UsesInvariantDateFormat()
+        {
+            // Arrange
+            var originalCulture = System.Threading.Thread.CurrentThread.CurrentCulture;
+            try
+            {
+                // Устанавливаем культуру с другим форматом даты
+                System.Threading.Thread.CurrentThread.CurrentCulture =
+                    new System.Globalization.CultureInfo("ru-RU");
+
+                DateTime startTime = new DateTime(2026, 3, 8, 15, 30, 0);
+                DateTime endTime = new DateTime(2026, 3, 8, 17, 45, 0);
+                var reservation = new Reservation("Тест", startTime, endTime);
+
+                // Act
+                string result = reservation.ToString();
+
+                // Assert - формат yyyy-MM-dd HH:mm не зависит от культуры
+                Assert.IsTrue(result.Contains("2026-03-08 15:30"));
+                Assert.IsTrue(result.Contains("2026-03-08 17:45"));
+            }
+            finally
+            {
+                System.Threading.Thread.CurrentThread.CurrentCulture = originalCulture;
+            }
+        }
+
+        #endregion
+
+        #region Интеграционные тесты с использованием в UI
+
+        [TestMethod]
+        public void Reservation_CanBeUsedInListBox()
+        {
+            // Arrange
+            var reservation = new Reservation("Клиент для ListBox",
+                new DateTime(2026, 7, 4, 10, 0, 0),
+                new DateTime(2026, 7, 4, 11, 30, 0));
+
+            // Act - имитация добавления в ListBox (вызов ToString)
+            string displayText = reservation.ToString();
+
+            // Assert
+            Assert.IsNotNull(displayText);
+            Assert.IsTrue(displayText.Length > 0);
+            Assert.IsTrue(displayText.Contains("Клиент для ListBox"));
+        }
+
+        [TestMethod]
+        public void MultipleReservations_HaveUniqueIds_WhenCreatedInLoop()
+        {
+            // Arrange
+            int count = 50;
+            var reservations = new Reservation[count];
+            DateTime baseTime = DateTime.Now.AddHours(1);
+
+            // Act
+            for (int i = 0; i < count; i++)
+            {
+                reservations[i] = new Reservation(
+                    $"Клиент {i}",
+                    baseTime.AddMinutes(i * 30),
+                    baseTime.AddMinutes(i * 30 + 25));
+            }
+
+            // Assert
+            var ids = reservations.Select(r => r.Id);
+            Assert.AreEqual(count, ids.Distinct().Count(), "Все Id должны быть уникальными");
+        }
+
+        #endregion
     }
 }
