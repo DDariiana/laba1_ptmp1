@@ -10,12 +10,11 @@ namespace ReservationApp
         public DateTime EndTime { get; set; }
         public ReservationStatus Status { get; set; }
 
-        // Конструктор для создания новой резервации
+        // Конструктор для создания новой записи
         public Reservation(string customerName, DateTime startTime, DateTime endTime)
         {
             if (string.IsNullOrWhiteSpace(customerName))
                 throw new ArgumentException("Имя клиента не может быть пустым.");
-
             if (startTime >= endTime)
                 throw new ArgumentException("Время начала должно быть раньше времени окончания.");
 
@@ -26,7 +25,7 @@ namespace ReservationApp
             Status = ReservationStatus.Активно;
         }
 
-        // Конструктор для загрузки из файла (с указанием Id)
+        // Конструктор для загрузки из файла
         public Reservation(Guid id, string customerName, DateTime startTime, DateTime endTime, ReservationStatus status)
         {
             Id = id;
@@ -34,21 +33,6 @@ namespace ReservationApp
             StartTime = startTime;
             EndTime = endTime;
             Status = status;
-        }
-
-        public void UpdateStatus(ReservationStatus newStatus)
-        {
-            Status = newStatus;
-        }
-
-        public bool IsActive()
-        {
-            return Status == ReservationStatus.Активно;
-        }
-
-        public TimeSpan GetDuration()
-        {
-            return EndTime - StartTime;
         }
 
         public override string ToString()
