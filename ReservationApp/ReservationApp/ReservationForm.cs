@@ -37,7 +37,8 @@ namespace ReservationApp
             customerNameTextBox = new TextBox
             {
                 Location = new Point(110, 17),
-                Width = 180
+                Width = 180,
+                Name = "customerNameTextBox"
             };
 
             var startLabel = new Label
@@ -52,7 +53,8 @@ namespace ReservationApp
                 Location = new Point(410, 17),
                 Width = 140,
                 Format = DateTimePickerFormat.Long,
-                ShowUpDown = false
+                ShowUpDown = false,
+                Name = "startTimePicker"
             };
 
             var endLabel = new Label
@@ -67,7 +69,8 @@ namespace ReservationApp
                 Location = new Point(690, 17),
                 Width = 140,
                 Format = DateTimePickerFormat.Long,
-                ShowUpDown = false
+                ShowUpDown = false,
+                Name = "endTimePicker"
             };
 
             var statusLabel = new Label
@@ -81,7 +84,8 @@ namespace ReservationApp
             {
                 Location = new Point(80, 52),
                 Width = 180,
-                DropDownStyle = ComboBoxStyle.DropDownList
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Name = "statusComboBox"
             };
             statusComboBox.Items.AddRange(new object[] { "Активно", "Отменено", "Завершено" });
             statusComboBox.SelectedIndex = 0;
@@ -91,14 +95,16 @@ namespace ReservationApp
             {
                 Location = new Point(20, 90),
                 Width = 800,
-                Height = 45
+                Height = 45,
+                Name = "buttonPanel"
             };
 
             addReservationButton = new Button
             {
                 Location = new Point(10, 10),
                 Text = "Добавить",
-                Width = 110
+                Width = 110,
+                Name = "addReservationButton"
             };
             addReservationButton.Click += AddReservationButton_Click;
 
@@ -106,7 +112,8 @@ namespace ReservationApp
             {
                 Location = new Point(130, 10),
                 Text = "Удалить",
-                Width = 110
+                Width = 110,
+                Name = "removeReservationButton"
             };
             removeReservationButton.Click += RemoveReservationButton_Click;
 
@@ -114,7 +121,8 @@ namespace ReservationApp
             {
                 Location = new Point(250, 10),
                 Text = "Обновить статус",
-                Width = 130
+                Width = 130,
+                Name = "updateStatusButton"
             };
             updateStatusButton.Click += UpdateStatusButton_Click;
 
@@ -122,7 +130,8 @@ namespace ReservationApp
             {
                 Location = new Point(390, 10),
                 Text = "Проверить доступность",
-                Width = 160
+                Width = 160,
+                Name = "checkAvailabilityButton"
             };
             checkAvailabilityButton.Click += CheckAvailabilityButton_Click;
 
@@ -146,7 +155,8 @@ namespace ReservationApp
             {
                 Location = new Point(20, 175),
                 Width = 800,
-                Height = 180
+                Height = 180,
+                Name = "reservationsListBox"
             };
 
             // СПИСОК СВОБОДНЫХ СЛОТОВ
@@ -162,7 +172,8 @@ namespace ReservationApp
             {
                 Location = new Point(20, 395),
                 Width = 800,
-                Height = 180
+                Height = 180,
+                Name = "availableSlotsListBox"
             };
 
             // ДОБАВЛЕНИЕ ЭЛЕМЕНТОВ НА ФОРМУ
