@@ -1,6 +1,9 @@
-﻿public enum ReservationStatus
+﻿namespace ReservationApp
 {
-    Активно,
-    Отменено,
-    Завершено
+    public enum ReservationStatus
+    {
+        Активно = 0,
+        Отменено = 1,
+        Завершено = 2
+    }
 }

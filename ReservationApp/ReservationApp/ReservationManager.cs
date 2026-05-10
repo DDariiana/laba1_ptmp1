@@ -7,6 +7,7 @@ namespace ReservationApp
 {
     public class ReservationManager
     {
+        // ОСТАВЛЯЕМ ОДНО поле — публичное свойство
         public List<Reservation> Reservations { get; private set; }
         private readonly string _filePath = "reservations.txt";
 
@@ -16,23 +17,61 @@ namespace ReservationApp
             LoadReservations();
         }
 
+        public bool IsTimeAvailable(DateTime start, DateTime end)
+        {
+            return !Reservations.Any(r =>
+                r.Status == ReservationStatus.Активно &&
+                start < r.EndTime &&
+                end > r.StartTime);
+        }
+
+        public List<string> GetAvailableSlots(DateTime startDate, int daysToCheck = 30)
+        {
+            var availableDates = new List<string>();
+
+            for (int i = 0; i < daysToCheck; i++)
+            {
+                DateTime checkDate = startDate.AddDays(i);
+                bool isDateAvailable = true;
+
+                foreach (var r in Reservations)
+                {
+                    if (r.Status == ReservationStatus.Активно)
+                    {
+                        if ((checkDate.Date >= r.StartTime.Date && checkDate.Date <= r.EndTime.Date) ||
+                            (r.StartTime.Date <= checkDate.Date && r.EndTime.Date >= checkDate.Date))
+                        {
+                            isDateAvailable = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (isDateAvailable)
+                {
+                    availableDates.Add(checkDate.ToString("dd.MM.yyyy (dddd)"));
+                }
+            }
+
+            return availableDates;
+        }
+
+        // 🔧 ИСПРАВЛЕНО: используем Reservations вместо _reservations
         public void AddReservation(Reservation reservation)
         {
-            if (reservation == null)
-                throw new ArgumentNullException(nameof(reservation));
+            foreach (var existing in Reservations) // ← было _reservations
+            {
+                if (existing.Status == ReservationStatus.Активно &&
+                    reservation.StartTime < existing.EndTime &&
+                    reservation.EndTime > existing.StartTime)
+                {
+                    throw new ArgumentException(
+                        $"Время с {reservation.StartTime} по {reservation.EndTime} уже занято резервированием для {existing.CustomerName}");
+                }
+            }
 
-            // Проверка пересечения только с активными резервациями
-            bool hasOverlap = Reservations.Any(r =>
-                r.Status == ReservationStatus.Активно &&
-                reservation.StartTime < r.EndTime &&
-                reservation.EndTime > r.StartTime);
-
-            if (hasOverlap)
-                throw new InvalidOperationException(
-                    "Период резервирования пересекается с существующей активной записью.");
-
-            Reservations.Add(reservation);
-            SaveReservations();
+            Reservations.Add(reservation); // ← было _reservations
+            SaveReservations(); // ← не забываем сохранить!
         }
 
         public void RemoveReservationById(Guid id)
@@ -45,45 +84,14 @@ namespace ReservationApp
             SaveReservations();
         }
 
-        // Перегрузка для совместимости
-        public void RemoveReservation(Reservation reservation)
-        {
-            if (reservation == null)
-                throw new ArgumentNullException(nameof(reservation));
-            RemoveReservationById(reservation.Id);
-        }
-
         public void UpdateReservationStatusById(Guid id, ReservationStatus newStatus)
         {
             var reservation = Reservations.FirstOrDefault(r => r.Id == id);
             if (reservation == null)
                 throw new ArgumentException("Резервирование не найдено.");
 
-            reservation.UpdateStatus(newStatus);
+            reservation.Status = newStatus;
             SaveReservations();
-        }
-
-        // Перегрузка для совместимости
-        public void UpdateReservationStatus(Reservation reservation, ReservationStatus newStatus)
-        {
-            if (reservation == null)
-                throw new ArgumentNullException(nameof(reservation));
-            UpdateReservationStatusById(reservation.Id, newStatus);
-        }
-
-        public Reservation GetReservationById(Guid id)
-        {
-            return Reservations.FirstOrDefault(r => r.Id == id);
-        }
-
-        public List<Reservation> GetActiveReservations()
-        {
-            return Reservations.Where(r => r.Status == ReservationStatus.Активно).ToList();
-        }
-
-        public List<Reservation> FindByCustomerName(string customerName)
-        {
-            return Reservations.Where(r => r.CustomerName.Contains(customerName)).ToList();
         }
 
         private void SaveReservations()
@@ -95,8 +103,7 @@ namespace ReservationApp
 
         private void LoadReservations()
         {
-            if (!File.Exists(_filePath))
-                return;
+            if (!File.Exists(_filePath)) return;
 
             var lines = File.ReadAllLines(_filePath);
             foreach (var line in lines)
@@ -104,15 +111,26 @@ namespace ReservationApp
                 var parts = line.Split('|');
                 if (parts.Length == 5 &&
                     Guid.TryParse(parts[0], out Guid id) &&
-                    DateTime.TryParse(parts[2], out DateTime startTime) &&
-                    DateTime.TryParse(parts[3], out DateTime endTime) &&
-                    int.TryParse(parts[4], out int statusInt) &&
-                    Enum.IsDefined(typeof(ReservationStatus), statusInt))
+                    DateTime.TryParse(parts[2], out DateTime start) &&
+                    DateTime.TryParse(parts[3], out DateTime end) &&
+                    int.TryParse(parts[4], out int statusInt))
                 {
-                    var reservation = new Reservation(id, parts[1], startTime, endTime, (ReservationStatus)statusInt);
-                    Reservations.Add(reservation);
+                    if (Enum.IsDefined(typeof(ReservationStatus), statusInt))
+                    {
+                        Reservations.Add(new Reservation(id, parts[1], start, end, (ReservationStatus)statusInt));
+                    }
                 }
             }
+        }
+
+        public void RemoveReservation(Reservation reservation)
+        {
+            RemoveReservationById(reservation.Id);
+        }
+
+        public void UpdateReservationStatus(Reservation reservation, ReservationStatus status)
+        {
+            UpdateReservationStatusById(reservation.Id, status);
         }
     }
 }

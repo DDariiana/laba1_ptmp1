@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Windows.Forms;
+using System.Drawing;
 
 namespace ReservationApp
 {
@@ -13,47 +14,172 @@ namespace ReservationApp
         private Button addReservationButton;
         private Button removeReservationButton;
         private Button updateStatusButton;
+        private Button checkAvailabilityButton;
         private ListBox reservationsListBox;
+        private ListBox availableSlotsListBox;
 
         public ReservationForm()
         {
             this.Text = "Управление резервированием";
-            this.Width = 780;
-            this.Height = 550;
+            this.Width = 850;
+            this.Height = 650;
+            this.StartPosition = FormStartPosition.CenterScreen;
 
-            // Метки
-            var nameLabel = new Label { Location = new System.Drawing.Point(10, 14), Text = "Имя клиента:", AutoSize = true };
-            var startTimeLabel = new Label { Location = new System.Drawing.Point(255, 14), Text = "Дата начала:", AutoSize = true };
-            var endTimeLabel = new Label { Location = new System.Drawing.Point(500, 14), Text = "Дата окончания:", AutoSize = true };
-            var statusLabel = new Label { Location = new System.Drawing.Point(10, 49), Text = "Статус:", AutoSize = true };
+            // ВЕРХНЯЯ ПАНЕЛЬ: ВВОД ДАННЫХ
 
-            // Поля ввода
-            customerNameTextBox = new TextBox { Location = new System.Drawing.Point(95, 10), Width = 150 };
-            startTimePicker = new DateTimePicker { Location = new System.Drawing.Point(340, 10), Width = 150 };
-            endTimePicker = new DateTimePicker { Location = new System.Drawing.Point(600, 10), Width = 150 };
-            statusComboBox = new ComboBox { Location = new System.Drawing.Point(70, 45), Width = 120, DropDownStyle = ComboBoxStyle.DropDownList };
+            var nameLabel = new Label
+            {
+                Location = new Point(20, 20),
+                Text = "Имя клиента:",
+                AutoSize = true
+            };
+
+            customerNameTextBox = new TextBox
+            {
+                Location = new Point(110, 17),
+                Width = 180
+            };
+
+            var startLabel = new Label
+            {
+                Location = new Point(320, 20),
+                Text = "Дата начала:",
+                AutoSize = true
+            };
+
+            startTimePicker = new DateTimePicker
+            {
+                Location = new Point(410, 17),
+                Width = 140,
+                Format = DateTimePickerFormat.Long,
+                ShowUpDown = false
+            };
+
+            var endLabel = new Label
+            {
+                Location = new Point(570, 20),
+                Text = "Дата окончания:",
+                AutoSize = true
+            };
+
+            endTimePicker = new DateTimePicker
+            {
+                Location = new Point(690, 17),
+                Width = 140,
+                Format = DateTimePickerFormat.Long,
+                ShowUpDown = false
+            };
+
+            var statusLabel = new Label
+            {
+                Location = new Point(20, 55),
+                Text = "Статус:",
+                AutoSize = true
+            };
+
+            statusComboBox = new ComboBox
+            {
+                Location = new Point(80, 52),
+                Width = 180,
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
             statusComboBox.Items.AddRange(new object[] { "Активно", "Отменено", "Завершено" });
             statusComboBox.SelectedIndex = 0;
 
-            // Кнопки
-            addReservationButton = new Button { Location = new System.Drawing.Point(10, 78), Text = "Добавить", Width = 100 };
+            // ПАНЕЛЬ КНОПОК
+            var buttonPanel = new Panel
+            {
+                Location = new Point(20, 90),
+                Width = 800,
+                Height = 45
+            };
+
+            addReservationButton = new Button
+            {
+                Location = new Point(10, 10),
+                Text = "Добавить",
+                Width = 110
+            };
             addReservationButton.Click += AddReservationButton_Click;
 
-            removeReservationButton = new Button { Location = new System.Drawing.Point(120, 78), Text = "Удалить", Width = 100 };
+            removeReservationButton = new Button
+            {
+                Location = new Point(130, 10),
+                Text = "Удалить",
+                Width = 110
+            };
             removeReservationButton.Click += RemoveReservationButton_Click;
 
-            updateStatusButton = new Button { Location = new System.Drawing.Point(230, 78), Text = "Обновить статус", Width = 130 };
+            updateStatusButton = new Button
+            {
+                Location = new Point(250, 10),
+                Text = "Обновить статус",
+                Width = 130
+            };
             updateStatusButton.Click += UpdateStatusButton_Click;
 
-            // Список резерваций
-            reservationsListBox = new ListBox { Location = new System.Drawing.Point(10, 115), Width = 740, Height = 380 };
+            checkAvailabilityButton = new Button
+            {
+                Location = new Point(390, 10),
+                Text = "Проверить доступность",
+                Width = 160
+            };
+            checkAvailabilityButton.Click += CheckAvailabilityButton_Click;
 
-            // Добавление элементов на форму
+            buttonPanel.Controls.AddRange(new Control[] {
+                addReservationButton,
+                removeReservationButton,
+                updateStatusButton,
+                checkAvailabilityButton
+            });
+
+            // СПИСОК РЕЗЕРВОВ
+            var resLabel = new Label
+            {
+                Location = new Point(20, 150),
+                Text = "Список резервов:",
+                Font = new Font("Microsoft Sans Serif", 9, FontStyle.Bold),
+                AutoSize = true
+            };
+
+            reservationsListBox = new ListBox
+            {
+                Location = new Point(20, 175),
+                Width = 800,
+                Height = 180
+            };
+
+            // СПИСОК СВОБОДНЫХ СЛОТОВ
+            var slotsLabel = new Label
+            {
+                Location = new Point(20, 370),
+                Text = "Свободные даты:",
+                Font = new Font("Microsoft Sans Serif", 9, FontStyle.Bold),
+                AutoSize = true
+            };
+
+            availableSlotsListBox = new ListBox
+            {
+                Location = new Point(20, 395),
+                Width = 800,
+                Height = 180
+            };
+
+            // ДОБАВЛЕНИЕ ЭЛЕМЕНТОВ НА ФОРМУ
             this.Controls.AddRange(new Control[] {
-                nameLabel, customerNameTextBox, startTimeLabel, startTimePicker,
-                endTimeLabel, endTimePicker, statusLabel, statusComboBox,
-                addReservationButton, removeReservationButton, updateStatusButton,
-                reservationsListBox
+                nameLabel,
+                customerNameTextBox,
+                startLabel,
+                startTimePicker,
+                endLabel,
+                endTimePicker,
+                statusLabel,
+                statusComboBox,
+                buttonPanel,
+                resLabel,
+                reservationsListBox,
+                slotsLabel,
+                availableSlotsListBox
             });
 
             reservationManager = new ReservationManager();
@@ -63,89 +189,98 @@ namespace ReservationApp
         private void UpdateReservationsList()
         {
             reservationsListBox.Items.Clear();
-            foreach (var reservation in reservationManager.Reservations)
+            foreach (var res in reservationManager.Reservations)
             {
-                reservationsListBox.Items.Add(reservation); // Добавляем объект, а не строку
+                reservationsListBox.Items.Add(res);
             }
-            reservationsListBox.DisplayMember = "ToString";
         }
 
-        private void AddReservationButton_Click(object sender, EventArgs e)
+        // ОБРАБОТЧИКИ СОБЫТИЙ
+        private void RefreshAvailableDates()
         {
-            if (string.IsNullOrWhiteSpace(customerNameTextBox.Text))
-            {
-                MessageBox.Show("Введите имя клиента!", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
             try
             {
-                var newReservation = new Reservation(
-                    customerNameTextBox.Text,
-                    startTimePicker.Value,
-                    endTimePicker.Value);
+                DateTime checkDate = startTimePicker.Value.Date;
+                var availableDates = reservationManager.GetAvailableSlots(checkDate);
 
-                reservationManager.AddReservation(newReservation);
-                customerNameTextBox.Clear();
+                availableSlotsListBox.Items.Clear();
+
+                if (availableDates.Count == 0)
+                {
+                    availableSlotsListBox.Items.Add("Нет свободных дат.");
+                }
+                else
+                {
+                    foreach (var date in availableDates)
+                    {
+                        availableSlotsListBox.Items.Add(date);
+                    }
+                }
+            }
+            catch (Exception){}
+        }
+        private void AddReservationButton_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                var res = new Reservation(customerNameTextBox.Text, startTimePicker.Value, endTimePicker.Value);
+                reservationManager.AddReservation(res);
+
                 UpdateReservationsList();
+                RefreshAvailableDates();
+
+                MessageBox.Show("Резервирование добавлено!", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
         private void RemoveReservationButton_Click(object sender, EventArgs e)
         {
-            if (reservationsListBox.SelectedIndex == -1)
+            if (reservationsListBox.SelectedItem is Reservation selected)
             {
-                MessageBox.Show("Выберите резервирование для удаления!", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
+                try
+                {
+                    reservationManager.RemoveReservationById(selected.Id);
+                    UpdateReservationsList();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
-
-            var reservation = reservationsListBox.SelectedItem as Reservation;
-            if (reservation == null)
+            else
             {
-                MessageBox.Show("Не удалось найти выбранное резервирование.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            try
-            {
-                reservationManager.RemoveReservationById(reservation.Id);
-                UpdateReservationsList();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Выберите запись!", "Внимание", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 
         private void UpdateStatusButton_Click(object sender, EventArgs e)
         {
-            if (reservationsListBox.SelectedIndex == -1)
+            if (reservationsListBox.SelectedItem is Reservation selected)
             {
-                MessageBox.Show("Выберите резервирование для обновления статуса!", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
+                try
+                {
+                    var newStatus = (ReservationStatus)Enum.Parse(typeof(ReservationStatus), statusComboBox.SelectedItem.ToString());
+                    reservationManager.UpdateReservationStatusById(selected.Id, newStatus);
+                    UpdateReservationsList();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
+            else
+            {
+                MessageBox.Show("Выберите запись!", "Внимание", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
 
-            var reservation = reservationsListBox.SelectedItem as Reservation;
-            if (reservation == null)
-            {
-                MessageBox.Show("Не удалось найти выбранное резервирование.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            try
-            {
-                var newStatus = (ReservationStatus)Enum.Parse(typeof(ReservationStatus), statusComboBox.SelectedItem.ToString());
-                reservationManager.UpdateReservationStatusById(reservation.Id, newStatus);
-                UpdateReservationsList();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
+        private void CheckAvailabilityButton_Click(object sender, EventArgs e)
+        {
+            RefreshAvailableDates();
         }
     }
 }
